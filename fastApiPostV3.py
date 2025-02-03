@@ -11,7 +11,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Allow requests from the frontend
+    allow_origins=["*"],  # Allow all origins, might need to change this 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -176,7 +176,6 @@ async def get_all_bogo_stores(locationData: dict):
         results = await asyncio.gather(*tasks)
 
         return [result for result in results if result]
-
 
 # FastAPI endpoints
 @app.post("/location")
