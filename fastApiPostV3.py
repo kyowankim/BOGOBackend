@@ -6,6 +6,7 @@ import urllib.parse
 from pydantic import BaseModel
 from asyncio import Semaphore
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 
 app = FastAPI()
 
@@ -47,7 +48,8 @@ async def get_location_data(session, address: str) -> dict:
         if response.status != 200:
             raise HTTPException(status_code=response.status, detail="Failed to fetch location data")
         map_data = await response.json()
-
+        if len(map_data["data"]) < 1:
+            raise HTTPException(status_code=404, detail="Please enter a valid location address")
     placeId = map_data["data"][0]["id"]
     deliverySearchURL = "https://www.ubereats.com/_p/api/getDeliveryLocationV1"
     deliverySearchPayload = json.dumps({
@@ -193,22 +195,21 @@ async def bogo_stores(location: BogoStoresRequest):
     if not location.address:
         return {}
     async with aiohttp.ClientSession() as session:
+        location_data = await get_location_data(session, location.address)
         try:
-            location_data = await get_location_data(session, location.address)
             stores = await get_all_bogo_stores(location_data)
             return {"bogoStores": stores}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
 
-async def main():
-    async with aiohttp.ClientSession() as session:
-        locationData = await get_location_data(session, "5407 Stearns Hill Rd, Waltham, MA")
-        await get_all_bogo_stores(locationData)
+# async def main():
+#     async with aiohttp.ClientSession() as session:
+#         locationData = await get_location_data(session, "5407 Stearns Hill Rd, Waltham, MA")
+#         await get_all_bogo_stores(locationData)
 
 
 # Run FastAPI app
 if __name__ == "__main__":
-    import uvicorn
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  # Fix for Windows
     uvicorn.run(app, host="0.0.0.0", port=8000)
